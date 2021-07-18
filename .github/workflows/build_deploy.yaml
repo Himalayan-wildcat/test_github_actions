@@ -36,6 +36,13 @@ jobs:
         with:
           version: 'latest'
 
-      - run: kubectl version --short
+      - name: print env
+        run: env
+
+      - name: Update kubeconfig
+        run: echo update kubeconfig
+
+      - name: Update k8s deployment image
+        run: echo update k8s deployment image
 
       - run: echo "Jobs done with ${{ job.status }}."
