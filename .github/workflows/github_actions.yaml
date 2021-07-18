@@ -16,7 +16,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 900
-          role-session-name: some session
+          role-session-name: testSessionFromHara
 
       - name: test aws cli
         run: |
