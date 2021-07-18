@@ -43,10 +43,10 @@ jobs:
         run: env
 
       - name: Repo name
-        run: ${{ github.repository }}
+        run: echo "${{ github.repository }}"
 
       - name: Branch name
-        run: ${{ github.head_ref }}
+        run: echo "${{ github.head_ref }}"
 
       - name: Update kubeconfig
         run: echo update kubeconfig
