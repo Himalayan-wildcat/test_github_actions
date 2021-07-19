@@ -20,8 +20,11 @@ jobs:
   build-deploy:
     runs-on: ubuntu-20.04
     needs: test
-    if: github.ref == 'refs/heads/main'
-    if: github.ref == 'refs/heads/staging'
+    if:
+      contains('
+        refs/heads/main
+        refs/heads/staging
+      ', github.ref)
     steps:
       - name: Checkout
         uses: actions/checkout@v2
