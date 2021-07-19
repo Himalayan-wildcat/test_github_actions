@@ -1,6 +1,8 @@
 on: push
+
 jobs:
   test:
+    if: "!contains('refs/heads/staging refs/heads/main', github.ref)"
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -18,12 +20,7 @@ jobs:
         run: go test
 
   build-deploy:
-    needs: test
-    if:
-      contains('
-        refs/heads/main
-        refs/heads/staging
-      ', github.ref) && ${{ success() }}
+    if: contains('refs/heads/staging refs/heads/main', github.ref)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -72,5 +69,7 @@ jobs:
 
       - name: Update k8s deployment image
         run: echo update k8s deployment image
+
+      - run: echo "foo"
 
       - run: echo "Jobs done with ${{ job.status }}."
