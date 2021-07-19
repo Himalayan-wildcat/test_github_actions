@@ -19,6 +19,7 @@ jobs:
 
       - name: Go test
         run: go test
+
   build-deploy:
     if:
       contains('refs/heads/staging refs/heads/main', github.ref)
