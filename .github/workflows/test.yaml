@@ -1,9 +1,8 @@
 on:
   push:
-    branches:
-      - dev0
-      - '!staging'
-      - '!main'
+    brances-ignore:
+      - staging
+      - main
 
 jobs:
   test:
