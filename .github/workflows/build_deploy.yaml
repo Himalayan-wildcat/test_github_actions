@@ -74,4 +74,6 @@ jobs:
       - name: Update k8s deployment image
         run: echo update k8s deployment image
 
+      - run: echo "foo"
+
       - run: echo "Jobs done with ${{ job.status }}."
