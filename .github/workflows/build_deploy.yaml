@@ -2,8 +2,7 @@ on: push
 
 jobs:
   test:
-    if:
-      "!contains('refs/heads/staging refs/heads/main', github.ref)"
+    if: "!contains('refs/heads/staging refs/heads/main', github.ref)"
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -21,8 +20,7 @@ jobs:
         run: go test
 
   build-deploy:
-    if:
-      contains('refs/heads/staging refs/heads/main', github.ref)
+    if: contains('refs/heads/staging refs/heads/main', github.ref)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
