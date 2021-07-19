@@ -18,13 +18,13 @@ jobs:
         run: go test
 
   build-deploy:
-    runs-on: ubuntu-20.04
     needs: test
     if:
       contains('
         refs/heads/main
         refs/heads/staging
-      ', github.ref)
+      ', github.ref) && ${{ success() }}
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
