@@ -1,6 +1,6 @@
 on:
   push:
-    brances-ignore:
+    branches-ignore:
       - staging
       - main
 
