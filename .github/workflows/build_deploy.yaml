@@ -23,7 +23,8 @@ jobs:
       contains('
         refs/heads/main
         refs/heads/staging
-      ', github.ref) && ${{ success() }}
+      ', github.ref)
+      && ${{ success() }}
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
