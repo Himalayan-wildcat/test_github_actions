@@ -1,10 +1,10 @@
-name: GitHub Actions Test
 on:
   push:
     branches:
       - main
 jobs:
   build-deploy:
+    needs: test
     runs-on: ubuntu-18.04
     steps:
       - name: Checkout
