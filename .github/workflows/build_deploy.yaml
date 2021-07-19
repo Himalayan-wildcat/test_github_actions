@@ -20,7 +20,7 @@ jobs:
 
   build-deploy:
     if:
-      contains('refs/heads/staging' 'refs/heads/main', github.ref)
+      contains('refs/heads/staging refs/heads/main', github.ref)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
