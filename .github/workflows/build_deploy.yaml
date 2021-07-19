@@ -1,7 +1,8 @@
 on:
   push:
-    - staging
-    - main
+    branches:
+      - staging
+      - main
 
 jobs:
   test:
