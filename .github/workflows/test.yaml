@@ -2,8 +2,8 @@ on:
   push:
     branches:
       - dev0
-      - !staging
-      - !main
+      - '!staging'
+      - '!main'
 
 jobs:
   test:
