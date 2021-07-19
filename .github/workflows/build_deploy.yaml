@@ -1,8 +1,4 @@
-on:
-  push:
-    branches:
-      - staging
-      - main
+on: push
 
 jobs:
   test:
@@ -23,6 +19,8 @@ jobs:
         run: go test
 
   build-deploy:
+    if:
+      contains('refs/heads/staging' 'refs/heads/main', github.ref)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
