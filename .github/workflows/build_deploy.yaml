@@ -39,7 +39,7 @@ jobs:
 
       - name: Set github repository
         id: github_repository
-        run: echo "::set-ouput name=repository::%{GIHUTB_REPOSITORY##*/}"
+        run: echo "::set-output name=repository::%{GIHUTB_REPOSITORY##*/}"
 
       - name: Set env prefix for production
         if: endsWith(github.ref, '/main')
