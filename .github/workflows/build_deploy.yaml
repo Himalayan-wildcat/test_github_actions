@@ -38,25 +38,23 @@ jobs:
           role-session-name: ${{ secrets.AWS_SESSION_NAME }}
 
       - name: Set env prefix for production
-        id: env_prefix
         if: endsWith(github.ref, '/main')
-        run: echo "::set-output name=prefix::prd-"
-        # run: echo "PREFIX=prd-" >> $GITHUB_ENV
+        # run: echo "::set-output name=prefix::prd-"
+        run: echo "PREFIX=prd-" >> $GITHUB_ENV
 
       - name: Set env prefix for staging
-        id: env_prefix
         if: endsWith(github.ref, '/staging')
-        run: echo "::set-output name=prefix::stg-"
-        # run: echo "PREFIX=stg-" >> $GITHUB_ENV
+        # run: echo "::set-output name=prefix::stg-"
+        run: echo "PREFIX=stg-" >> $GITHUB_ENV
 
       - name: Login to AWS ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Set ECR repository
-        env:
-          prefix: ${{ steps.env_prefix.outputs.prefix }}
-        run:  echo "ECR_REPOSITORY=${{ env.prefix }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+        # env:
+        #   prefix: ${{ steps.env_prefix.outputs.prefix }}
+        run:  echo "ECR_REPOSITORY=${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
       - name: Set ECR image URI
         run:  echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
