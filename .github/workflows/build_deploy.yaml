@@ -1,138 +1,105 @@
-on: push
+on:
+  push:
+    branches:
+      - main
+      - staging
 
 jobs:
-  test:
-    if: "!contains('refs/heads/staging refs/heads/main', github.ref)"
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+  # test:
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
 
-      - name: Set up Golang env
-        uses: actions/setup-go@v2
-        with:
-          go-version: "^1.16"
+  #     - name: Set up Golang env
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: "^1.16"
 
-      - name: print Golang version
-        run: go version
+  #     - name: print Golang version
+  #       run: go version
 
-      - name: Go test
-        run: go test
+  #     - name: Go test
+  #       run: go test
 
   build-deploy:
-    if: contains('refs/heads/staging refs/heads/main', github.ref)
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Cache go.sum
+        id: cahce-go-sum
+        uses: actions/cache@v2
         with:
-          aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
-          role-duration-seconds: 900
-          role-session-name: ${{ secrets.AWS_SESSION_NAME }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
 
-      - name: Set github repository
-        id: github_repository
-        run: echo "::set-output name=repository::${GIHUTB_REPOSITORY##*/}"
-
-      - name: Set env prefix for production
-        if: endsWith(github.ref, '/main')
-        run: echo "PREFIX=prd-" >> $GITHUB_ENV
-
-      - name: Set env prefix for staging
-        if: endsWith(github.ref, '/staging')
-        run: echo "PREFIX=stg-" >> $GITHUB_ENV
-
-      - name: Login to AWS ECR
-        id: login_ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Push Docker image to ECR
-        id: push_image
-        env:
-          ECR_REPOSITORY: ${{ env.PREFIX }}${{ steps.github_repository.outputs.repository }}
-          ECR_IMAGE_URI:  ${{ steps.login_ecr.outputs.registry }}/${{ env.PREFIX }}${{ steps.github_repository.outputs.repository }}:${{ github.sha }}
-        run: |
-          docker build -t ${ECR_REPOSITORY} .
-          docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
-          docker push ${ECR_IMAGE_URI}
+      - name: Cache result
+        run: echo ${{ steps.cache-go-sum.outputs.cache-hit }}
 
 
+      # - name: Configure aws credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ap-northeast-1
+      #     role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      #     role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+      #     role-duration-seconds: 900
+      #     role-session-name: ${{ secrets.AWS_SESSION_NAME }}
+
+      # - name: Set env prefix for production
+      #   if: endsWith(github.ref, '/main')
+      #   run: echo "PREFIX=prd-" >> $GITHUB_ENV
+
+      # - name: Set env prefix for staging
+      #   if: endsWith(github.ref, '/staging')
+      #   run: echo "PREFIX=stg-" >> $GITHUB_ENV
 
 
+      # - name: Set github repository
+      #   id: github_repository
+      #   run: echo "::set-output name=repository::test_github_actions"
+
+      # - name: Login to AWS ECR
+      #   id: login_ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
 
       # - name: Set ECR repository
       #   id: ecr_repository
-      #   run: echo "::set-output name=repository::${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}"
+      #   run: echo "::set-output name=repository::${{ env.PREFIX }}${{ steps.github_repository.outputs.repository }}"
 
       # - name: Set ECR image URI
       #   id: ecr_image_uri
-      #   env:
-      #     repository: ${{ steps.ecr_repository.outputs.repository }}
-      #   run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr_repository.outputs.repository }}:${{ github.sha }}"
+      #   run: echo "::set-output name=uri::${{ steps.login_ecr.outputs.registry }}/${{ steps.ecr_repository.outputs.repository }}:${{ github.sha }}"
 
-      # - name: Push Docker image to ECR repository
+      # - name: Push Docker image to ECR
+      #   id: push_image
       #   env:
-      #     REPOSITORY: ${{ steps.ecr_repository.outputs.repository }}
-      #     IMAGE_URI: ${{ steps.ecr_image_uri.outputs.uri }}
+      #     ECR_REPOSITORY: ${{ steps.ecr_repository.outputs.repository }}
+      #     ECR_IMAGE_URI: ${{ steps.ecr_image_uri.outputs.uri}}
       #   run: |
-      #     docker build -t ${REPOSITORY} .
-      #     docker tag ${REPOSITORY}:latest ${IMAGE_URI}
-      #     docker push ${IMAGE_URI}
+      #     docker build -t ${ECR_REPOSITORY} .
+      #     docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
+      #     docker push ${ECR_IMAGE_URI}
 
       # - name: Update k8s deployment image
       #   env:
-      #     DEPLOYMENT: ${{ steps.ecr_repository.outputs.repository }}
-      #     IMAGE_NAME: ${{ steps.ecr_repository.outputs.repository }}
-      #     IMAGE_URI: ${{ steps.ecr_image_uri.outputs.uri }}
+      #     DEPLOYMENT: ${{ steps.github_repository.outputs.repository }}
+      #     CONTAINER_NAME: ${{ steps.github_repository.outputs.repository }}
+      #     CONTAINER_IMAGE: ${{ steps.ecr_image_uri.outputs.uri }}
       #   run: |
+      #     echo ${DEPLOYMENT}
+      #     echo ${CONTAINER_NAME}
+      #     echo ${CONTAINER_IMAGE}
+
       #     kubectl \
       #     --record \
       #     --kubeconfig=/tmp/kubeconfig \
       #     -n remosis \
-      #     set image deploy/${DEPLOYMENT} ${IMAGE_NAME}=${IMAGE_URI}
+      #     set image deploy/${DEPLOYMENT} ${CONTAINER_NAME}=${CONTAINER_IMAGE}
 
-
-      # - name: Set ECR repository
-      #   run:  echo "ECR_REPOSITORY=${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-
-      # - name: Set ECR image URI
-      #   run:  echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
-
-      # - name: Push Docker image to ECR repository
-      #   run: |
-      #     docker build -t ${{ env.ECR_REPOSITORY }} .
-      #     docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.ECR_IMAGE_URI }}
-      #     docker push ${{ env.ECR_IMAGE_URI }}
-
-      # - name: Push image to AWS ECR
-      #   env:
-      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      #     ECR_REPOSITORY: "0718"
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   run: |
-      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-      #     docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
-      #     # docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      # - name: Install kubectl
-      #   uses: azure/setup-kubectl@v1
-      #   with:
-      #     version: 'latest'
-
-      # - name: Update k8s deployment image
-      #   run: |
-      #     kubectl \
-      #     --record \
-      #     --kubeconfig=/tmp/kubeconfig \
-      #     -n remosis \
-      #     set image deploy/${{ env.ECR_REPOSITORY }} ${{ env.ECR_REPOSITORY }}=${{ env.ECR_IMAGE_URI }}
-
-      - run: echo "Jobs done with ${{ job.status }}."
+      # - run: echo "Jobs done with ${{ job.status }}."
