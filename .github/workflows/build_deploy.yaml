@@ -39,12 +39,10 @@ jobs:
 
       - name: Set env prefix for production
         if: endsWith(github.ref, '/main')
-        # run: echo "::set-output name=prefix::prd-"
         run: echo "PREFIX=prd-" >> $GITHUB_ENV
 
       - name: Set env prefix for staging
         if: endsWith(github.ref, '/staging')
-        # run: echo "::set-output name=prefix::stg-"
         run: echo "PREFIX=stg-" >> $GITHUB_ENV
 
       - name: Login to AWS ECR
@@ -52,18 +50,25 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Set ECR repository
-        # env:
-        #   prefix: ${{ steps.env_prefix.outputs.prefix }}
-        run:  echo "ECR_REPOSITORY=${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+        id: ecr_repository
+        run: echo "::set-output name=repository:${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}"
 
       - name: Set ECR image URI
-        run:  echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
+        id: ecr_image_uri
+        env:
+          repository: ${{ steps.ecr_repository.outputs.repository }}
+        run: echo "::set-output name=uri:${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr_repository.outputs.repository }}:${{ github.sha }}"
 
       - name: check
         run: |
-          echo "$GITHUB_REPOSITORY"
-          echo ${{ env.ECR_REPOSITORY }}
-          echo ${{ env.ECR_IMAGE_URI }}
+          echo ${{ steps.ecr_repository.outputs.repository }}
+          echo ${{ steps.ecr_image_uri.outputs.uri }}
+      # - name: Set ECR repository
+      #   run:  echo "ECR_REPOSITORY=${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      # - name: Set ECR image URI
+      #   run:  echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
+
       # - name: Push Docker image to ECR repository
       #   run: |
       #     docker build -t ${{ env.ECR_REPOSITORY }} .
@@ -86,10 +91,12 @@ jobs:
       #   with:
       #     version: 'latest'
 
-      # - name: Update kubeconfig
-      #   run: echo update kubeconfig
-
       # - name: Update k8s deployment image
-      #   run: echo update k8s deployment image
+      #   run: |
+      #     kubectl \
+      #     --record \
+      #     --kubeconfig=/tmp/kubeconfig \
+      #     -n remosis \
+      #     set image deploy/${{ env.ECR_REPOSITORY }} ${{ env.ECR_REPOSITORY }}=${{ env.ECR_IMAGE_URI }}
 
       - run: echo "Jobs done with ${{ job.status }}."
