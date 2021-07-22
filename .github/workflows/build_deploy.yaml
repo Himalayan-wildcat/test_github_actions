@@ -35,43 +35,63 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 900
-          role-session-name: someSesseionName
+          role-session-name: ${{ secrets.AWS_SESSION_NAME }}
+
+      - name: Set env prefix for production
+        id: env_prefix
+        if: endsWith(github.ref, '/main')
+        run: echo "::set-output name=prefix::prd-"
+        # run: echo "PREFIX=prd-" >> $GITHUB_ENV
+
+      - name: Set env prefix for staging
+        id: env_prefix
+        if: endsWith(github.ref, '/staging')
+        run: echo "::set-output name=prefix::stg-"
+        # run: echo "PREFIX=stg-" >> $GITHUB_ENV
 
       - name: Login to AWS ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Push image to AWS ECR
+      - name: Set ECR repository
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: "0718"
-          IMAGE_TAG: ${{ github.sha }}
+          prefix: ${{ steps.env_prefix.outputs.prefix }}
+        run:  echo "ECR_REPOSITORY=${{ env.prefix }}${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Set ECR image URI
+        run:  echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: check
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
-          # docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "$GITHUB_REPOSITORY"
+          echo ${{ env.ECR_REPOSITORY }}
+          echo ${{ env.ECR_IMAGE_URI }}
+      # - name: Push Docker image to ECR repository
+      #   run: |
+      #     docker build -t ${{ env.ECR_REPOSITORY }} .
+      #     docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.ECR_IMAGE_URI }}
+      #     docker push ${{ env.ECR_IMAGE_URI }}
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v1
-        with:
-          version: 'latest'
+      # - name: Push image to AWS ECR
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: "0718"
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+      #     docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
+      #     # docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: print env
-        run: env
+      # - name: Install kubectl
+      #   uses: azure/setup-kubectl@v1
+      #   with:
+      #     version: 'latest'
 
-      - name: Repo name
-        run: echo "${{ github.repository }}"
+      # - name: Update kubeconfig
+      #   run: echo update kubeconfig
 
-      - name: Branch name
-        run: echo "${{ github.head_ref }}"
-
-      - name: Update kubeconfig
-        run: echo update kubeconfig
-
-      - name: Update k8s deployment image
-        run: echo update k8s deployment image
-
-      - run: echo "foo"
+      # - name: Update k8s deployment image
+      #   run: echo update k8s deployment image
 
       - run: echo "Jobs done with ${{ job.status }}."
