@@ -51,7 +51,7 @@ jobs:
 
       - name: Set ECR repository
         id: ecr_repository
-        run: echo "::set-output name=repository:${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}"
+        run: echo "::set-output name=repository::${{ env.PREFIX }}${GITHUB_REPOSITORY##*/}"
 
       - name: Set ECR image URI
         id: ecr_image_uri
