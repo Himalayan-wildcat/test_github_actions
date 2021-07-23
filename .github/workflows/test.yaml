@@ -45,6 +45,7 @@ jobs:
     outputs:
       ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
       ecr_iamge_uri: ${{ steps.ecr-image-uri.outputs.uri }}
+      foo: bar
 
   build-deploy:
     needs: pre-build-deploy
@@ -52,12 +53,14 @@ jobs:
     env:
       ECR_REPOSITORY: ${{ needs.pre-build-deploy.outputs.ecr_repository }}
       ECR_IMAGE_URI: ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+      foo: ${{ needs.pre-build-deploy.output.foo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Push image to ECR
         run: |
+          echo ${foo}
           docker build -t ${ECR_REPOSITORY} .
           # docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
           # docker push ${ECR_IMAGE_URI}
