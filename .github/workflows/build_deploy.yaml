@@ -77,7 +77,7 @@ jobs:
       # - name: Checkout
       #   uses: actions/checkout@v2
 
-      - nam: print env from the previous job
+      - name: print env from the previous job
         run: |
           echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
           echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri i}}
