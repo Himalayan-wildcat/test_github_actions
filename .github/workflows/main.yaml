@@ -87,13 +87,13 @@ jobs:
       - name: Push image to ECR
         env:
           DOCKER_BUILDKIT: 1
-          REPOSITORY: ${{ steps.ecr-repository.outputs.repository }}
+          REPOSITORY: ${{ env.PREFIX }}${{ steps.github-repository.outputs.repository }}
           IMAGE_BASE_URI: ${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository }}
         run: |
           docker build \
             --cache-from=${IMAGE_BASE_URI}:latest \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            -t ${REPOSITORY}:latset .
+            -t ${REPOSITORY} .
           docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:${{ github.sha }}
           docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:latest
           docker push --all-tags ${IMAGE_BASE_URI}
