@@ -30,6 +30,9 @@ jobs:
   pre-build-deploy:
     # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
     runs-on: ubuntu-20.04
+    outputs:
+      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
+      ecr_image_uri: ${{ steps.ecr-image-uri.uri }}
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -65,9 +68,6 @@ jobs:
       - name: Issue ECR image URI
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
-    outputs:
-      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
-      ecr_image_uri: ${{ steps.ecr-image-uri.uri }}
 
   build-deploy:
     # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
