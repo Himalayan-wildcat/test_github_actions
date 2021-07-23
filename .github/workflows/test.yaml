@@ -8,8 +8,8 @@ jobs:
   pre-build-deploy:
     runs-on: ubuntu-20.04
     outputs:
-      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
-      ecr_image_uri: ${{ steps.ecr-image-uri.outputs.uri }}
+      a: ${{ steps.ecr-repository.outputs.repository }}
+      b: ${{ steps.ecr-image-uri.outputs.uri }}
       foo: bar
     steps:
       - name: Configure aws credentials
@@ -58,8 +58,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - run: |
-          echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
-          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+          echo ${{ needs.pre-build-deploy.outputs.a }}
+          echo ${{ needs.pre-build-deploy.outputs.b }}
           echo ${{ needs.pre-build-deploy.outputs.foo }}
 
       # - name: Checkout
