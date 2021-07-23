@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
-      ecr_image_uri: ${{ steps.ecr-image-uri.uri }}
+      ecr_image_uri: ${{ steps.ecr-image-uri.outputs.uri }}
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -69,18 +69,23 @@ jobs:
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
 
-  build-deploy:
-    # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
-    needs: pre-build-deploy
-    runs-on: ubuntu-20.04
-    steps:
-      # - name: Checkout
-      #   uses: actions/checkout@v2
-
-      - name: print env from the previous job
+      - name: Print env
         run: |
-          echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
-          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+          echo ${{ steps.ecr-repository.outputs.repository }}
+          echo ${{ steps.ecr-image-uri.outputs.uri }}
+
+  # build-deploy:
+  #   # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
+  #   needs: pre-build-deploy
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     # - name: Checkout
+  #     #   uses: actions/checkout@v2
+
+  #     - name: print env from the previous job
+  #       run: |
+  #         echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
+  #         echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
 
 
     # - name: Cache go.sum
