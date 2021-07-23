@@ -1,12 +1,8 @@
 on: push
-  # push:
-  #   branches:
-  #     - main
-  #     - staging
 
 jobs:
   test:
-    if: !contains('refs/heads/staging refs/heads/main', github.ref)
+    if: "!contains('refs/heads/main', github.ref)"
     runs-on: ubuntu-20.04
     steps:
       - name: Set up Golang env
@@ -17,7 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Go test
+      # - name: Lint if any
+      #   run: echo Lint
+
+      - name: Test
         run: go test -v ./...
 
   build-deploy:

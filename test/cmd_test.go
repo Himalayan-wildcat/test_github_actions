@@ -14,7 +14,7 @@ func TestSum(t *testing.T) {
 
 	result := cmd.Sum(x, y)
 
-	if result == want {
+	if result != want {
 		t.Errorf("test failed.")
 	}
 }
