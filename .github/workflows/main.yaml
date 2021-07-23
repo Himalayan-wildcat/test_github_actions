@@ -78,7 +78,7 @@ jobs:
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:${{ github.sha }}"
 
-      - name: Cache downloaded modules/build
+      - name: Cache build/downloaded modules
         id: cache-go-sum
         uses: actions/cache@v2
         with:
