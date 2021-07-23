@@ -97,7 +97,7 @@ jobs:
         run: |
           docker build -t ${REPOSITORY} .
           docker tag ${REPOSITORY}:latest ${IMAGE_URI}
-          docker push ${IMAGE_URI}
+          # docker push ${IMAGE_URI}
 
       ########################################################################################
       # The following 2 steps are only for local use.
