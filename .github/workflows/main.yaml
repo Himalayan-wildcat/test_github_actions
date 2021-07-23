@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Cache downloaded modules
+      - name: Cache test
         id: cache-go-sum
         uses: actions/cache@v2
         with:
@@ -78,7 +78,7 @@ jobs:
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:${{ github.sha }}"
 
-      - name: Cache downloaded modules
+      - name: Cache downloaded modules/build
         id: cache-go-sum
         uses: actions/cache@v2
         with:
