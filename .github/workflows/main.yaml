@@ -93,10 +93,9 @@ jobs:
           docker build \
             --cache-from=${IMAGE_BASE_URI}:latest \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            -t ${REPOSITORY}:latset \
-            -t ${REPOSITORY}:${{ github.sha}} .
-          # docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:${{ github.sha }}
-          # docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:latest
+            -t ${REPOSITORY}:latset .
+          docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:${{ github.sha }}
+          docker tag ${REPOSITORY}:latest ${IMAGE_BASE_URI}:latest
           docker push --all-tags ${IMAGE_BASE_URI}
 
       ########################################################################################
