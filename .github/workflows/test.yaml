@@ -1,0 +1,83 @@
+on: push
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pre-build-deploy:
+    runs-on: ubuntu-20.04
+    outputs:
+      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
+      ecr_image_uri: ${{ steps.ecr-image-uri.outputs.uri }}
+      foo: bar
+    steps:
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 900
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set env prefix for main
+        if: endsWith(github.ref, '/main')
+        run: echo "PREFIX=prd-" >> $GITHUB_ENV
+
+      - name: Set env prefix for staging
+        if: endsWith(github.ref, '/staging')
+        run: echo "PREFIX=stg-" >> $GITHUB_ENV
+
+      - name: Exptract github repository
+        id: github-repository
+        run: echo "::set-output name=repository::${GITHUB_REPOSITORY##*/}"
+
+      - name: Specify ECR repository
+        id: ecr-repository
+        run: echo "::set-output name=repository::${{ env.PREFIX }}${{ steps.github-repository.outputs.repository }}"
+
+      - name: Issue ECR image URI
+        id: ecr-image-uri
+        run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
+
+      - name: Print env
+        run: |
+          echo ${{ steps.ecr-repository.outputs.repository }}
+          echo ${{ steps.ecr-image-uri.outputs.uri }}
+
+
+  build-deploy:
+    needs: pre-build-deploy
+    runs-on: ubuntu-20.04
+    steps:
+      - run: |
+          echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
+          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+          echo ${{ needs.pre-build-deploy.outputs.foo }}
+
+      # - name: Checkout
+      #   uses: actions/checkout@v2
+
+      # - name: print env from the previous job
+      #   run: echo ${{ needs.pre-build-deploy.outputs.ecr_repository }} +  ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+
+
+    # - name: Cache go.sum
+      #   id: cache-go-sum
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/go/pkg/mod
+      #     key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
+      #     restore-keys: ${{ runner.os }}-go-
+
+      # - name: Cache result
+      #   run: echo ${{ steps.cache-go-sum.outputs.cache-hit }}
+
+      # - run: echo "Jobs done with ${{ job.status }}."

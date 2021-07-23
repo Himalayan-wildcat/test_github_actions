@@ -27,7 +27,7 @@ jobs:
     #   - name: Test
     #     run: go test -v ./...
 
-  pre-build-deploy:
+  pre_build_deploy:
     # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
     runs-on: ubuntu-20.04
     outputs:
@@ -74,16 +74,18 @@ jobs:
           echo ${{ steps.ecr-repository.outputs.repository }}
           echo ${{ steps.ecr-image-uri.outputs.uri }}
 
+
   build-deploy:
     # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
-    needs: pre-build-deploy
     runs-on: ubuntu-20.04
+    needs: pre_build_deploy
     steps:
+      - run: echo ${{ needs.pre_build_deploy.outputs.ecr_repository }}
       # - name: Checkout
       #   uses: actions/checkout@v2
 
-      - name: print env from the previous job
-        run: echo ${{ needs.pre-build-deploy.outputs.ecr_repository }} +  ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
+      # - name: print env from the previous job
+      #   run: echo ${{ needs.pre-build-deploy.outputs.ecr_repository }} +  ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
 
 
     # - name: Cache go.sum
