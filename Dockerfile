@@ -1,12 +1,16 @@
-FROM golang:1.16-alpine
+FROM golang:1.16-alpine as builder
 
-WORKDIR /app
+WORKDIR /go/src/github.com/test_github_actions/
 
 COPY go.mod .
 RUN go mod download
 
-COPY *.go ./
+COPY . .
 
-RUN go build -o /out
+RUN go build -o out
 
-CMD ["/out"]
+FROM alpine
+
+COPY --from=builder /go/src/github.com/test_github_actions/out /app/out
+
+CMD ["/app/out"]

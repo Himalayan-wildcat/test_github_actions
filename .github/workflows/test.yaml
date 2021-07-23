@@ -7,10 +7,6 @@ defaults:
 jobs:
   pre-build-deploy:
     runs-on: ubuntu-20.04
-    outputs:
-      a: ${{ steps.ecr-repository.outputs.repository }}
-      b: ${{ steps.ecr-image-uri.outputs.uri }}
-      foo: bar
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -46,24 +42,26 @@ jobs:
       - name: Issue ECR image URI
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
-
-      - name: Print env
-        run: |
-          echo ${{ steps.ecr-repository.outputs.repository }}
-          echo ${{ steps.ecr-image-uri.outputs.uri }}
-
+    outputs:
+      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
+      ecr_iamge_uri: ${{ steps.ecr-image-uri.outputs.uri }}
 
   build-deploy:
     needs: pre-build-deploy
     runs-on: ubuntu-20.04
+    env:
+      ECR_REPOSITORY: ${{ needs.pre-build-deploy.outputs.ecr_repository }}
+      ECR_IMAGE_URI: ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
     steps:
-      - run: |
-          echo ${{ needs.pre-build-deploy.outputs.a }}
-          echo ${{ needs.pre-build-deploy.outputs.b }}
-          echo ${{ needs.pre-build-deploy.outputs.foo }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Push image to ECR
+        run: |
+          docker build -t ${ECR_REPOSITORY} .
+          docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
+          docker push ${ECR_IMAGE_URI}
 
-      # - name: Checkout
-      #   uses: actions/checkout@v2
+
 
       # - name: print env from the previous job
       #   run: echo ${{ needs.pre-build-deploy.outputs.ecr_repository }} +  ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
