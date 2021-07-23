@@ -9,42 +9,78 @@ jobs:
     if: "!contains('refs/heads/main refs/heads/staging', github.ref)"
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up golang env
-        uses: actions/setup-go@v2
-        with:
-          go-version: "^1.16"
+      - name: print hello
+        run: echo hello
 
-      - name: Checkout
-        uses: actions/checkout@v2
+    # steps:
+    #   - name: Set up golang env
+    #     uses: actions/setup-go@v2
+    #     with:
+    #       go-version: "^1.16"
 
-      # - name: Lint if any
-      #   run: echo Lint
+    #   - name: Checkout
+    #     uses: actions/checkout@v2
 
-      - name: Test
-        run: go test -v ./...
+    #   # - name: Lint if any
+    #   #   run: echo Lint
 
-　export-env:
-    if: contains('refs/heads/staging refs/heads/main refs/heads/test1', github.ref)
+    #   - name: Test
+    #     run: go test -v ./...
+
+  pre-build-deploy:
+    # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
     runs-on: ubuntu-20.04
+    steps:
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 900
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
 
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set env prefix for main
+        if: endsWith(github.ref, '/main')
+        run: echo "PREFIX=prd-" >> $GITHUB_ENV
+
+      - name: Set env prefix for staging
+        if: endsWith(github.ref, '/staging')
+        run: echo "PREFIX=stg-" >> $GITHUB_ENV
+
+      - name: Exptract github repository
+        id: github-repository
+        run: echo "::set-output name=repository::${GITHUB_REPOSITORY##*/}"
+
+      - name: Specify ECR repository
+        id: ecr-repository
+        run: echo "::set-output name=repository::${{ env.PREFIX }}${{ steps.github-repository.outputs.repository }}"
+
+      - name: Issue ECR image URI
+        id: ecr-image-uri
+        run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
+    outputs:
+      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
+      ecr_image_uri: ${{ steps.ecr-image-uri.uri }}
 
   build-deploy:
-    if: contains('refs/heads/staging refs/heads/main refs/heads/test1', github.ref) && ${{ success() }}
-    needs: test
+    # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
+    needs: pre-build-deploy
     runs-on: ubuntu-20.04
-    env:
-      FOO: BAR
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      # - name: Checkout
+      #   uses: actions/checkout@v2
 
-      - name: print env1
+      - nam: print env from the previous job
         run: |
-          echo ${FOO}
-
-      - name: print env2
-        run: |
-          echo ${FOO}
+          echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
+          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri i}}
 
 
     # - name: Cache go.sum
