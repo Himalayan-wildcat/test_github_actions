@@ -20,15 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Cache test
-        id: cache-go-sum
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
-
       # - name: Lint if any
       #   run: echo Lint
 
@@ -87,16 +78,23 @@ jobs:
             ~/.cache/go-build
           key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
 
-      - name: Cache result
-        run: echo ${{ steps.cache-go-sum.outputs.cache-hit }}
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-v1-${{ github.sha }}
 
       - name: Push image to ECR
         env:
+          DOCKER_BUILDKIT: 1
           REPOSITORY: ${{ steps.ecr-repository.outputs.repository }}
           IMAGE_URI: ${{ steps.ecr-image-uri.outputs.uri }}
         run: |
-          docker build -t ${REPOSITORY} .
-          docker tag ${REPOSITORY}:latest ${IMAGE_URI}
+          docker build \
+            --cache-from=/tmp/docker/cache \
+            --build-arg BIULDKIG_INLINE_CACHE=1 \
+            -t ${REPOSITORY} .
+          # docker tag ${REPOSITORY}:latest ${IMAGE_URI}
           # docker push ${IMAGE_URI}
 
       ########################################################################################
