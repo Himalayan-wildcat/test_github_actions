@@ -80,7 +80,7 @@ jobs:
       - name: print env from the previous job
         run: |
           echo ${{ needs.pre-build-deploy.outputs.ecr_repository }}
-          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri i}}
+          echo ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
 
 
     # - name: Cache go.sum
