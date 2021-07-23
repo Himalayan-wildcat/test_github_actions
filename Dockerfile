@@ -2,7 +2,7 @@ FROM golang:1.16-alpine as builder
 
 WORKDIR /go/src/github.com/test_github_actions/
 
-COPY go.mod .
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .

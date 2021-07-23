@@ -1,0 +1,155 @@
+on: push
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    if: "!contains('refs/heads/main', github.ref)"
+    runs-on: ubuntu-20.04
+    steps:
+      - name: print hello
+        run: echo hello
+
+      - name: Set up go env
+        uses: actions/setup-go@v2
+        with:
+          go-version: "^1.16"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cache downloaded modules
+        id: cache-go-sum
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
+
+      # - name: Lint if any
+      #   run: echo Lint
+
+      - name: Test
+        run: go test -v ./...
+
+  build-deploy:
+    if: contains('refs/heads/staging refs/heads/main', github.ref) && success()
+    runs-on: ubuntu-20.04
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set env prefix for production
+        if: endsWith(github.ref, '/main')
+        run: echo "PREFIX=prd-" >> $GITHUB_ENV
+
+      - name: Set env prefix for staging
+        if: endsWith(github.ref, '/staging')
+        run: echo "PREFIX=stg-" >> $GITHUB_ENV
+
+      - name: Extract github repository
+        id: github-repository
+        run: echo "::set-output name=repository::${GITHUB_REPOSITORY##*/}"
+
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 900
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Specify ECR repository
+        id: ecr-repository
+        run: echo "::set-output name=repository::${{ env.PREFIX }}${{ steps.github-repository.outputs.repository }}"
+
+      - name: Issue ECR image URI
+        id: ecr-image-uri
+        run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:${{ github.sha }}"
+
+      - name: Cache downloaded modules
+        id: cache-go-sum
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-v1-${{ hashFiles('**/go.sum') }}
+
+      - name: Cache result
+        run: echo ${{ steps.cache-go-sum.outputs.cache-hit }}
+
+      - name: Push image to ECR
+        env:
+          REPOSITORY: ${{ steps.ecr-repository.outputs.repository }}
+          IMAGE_URI: ${{ steps.ecr-image-uri.outputs.uri }}
+        run: |
+          docker build -t ${REPOSITORY} .
+          docker tag ${REPOSITORY}:latest ${IMAGE_URI}
+          docker push ${IMAGE_URI}
+
+      ########################################################################################
+      # The following 2 steps are only for local use.
+      # - name: Delete docker images
+      #   run: |
+      #     docker rmi ${{ steps.ecr-repository.outputs.repository }}:latest
+      #     docker rmi ${{ steps.ecr-image-uri.outputs.uri }}
+
+      # - name: Install AWS cliv2
+      #   run: |
+      #     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      #     unzip awscliv2.zip
+      #     sudo ./aws/install
+      #     rm -rf aws awscliv2.zip
+      #########################################################################################
+
+      # - name: Create kubeconfig file
+      #   env:
+      #     EKS_CLUSTER: ${{ env.PREFIX }}${{ secrets.AWS_EKS_CLUSTER_SUFFIX }}
+      #   run: |
+      #     aws eks update-kubeconfig \
+      #       --name ${EKS_CLUSTER} \
+      #       --kubeconfig=/tmp/kubeconfig
+
+      # - name: Install kubectl
+      #   uses: azure/setup-kubectl@v1
+      #   with:
+      #     version: 'latest'
+
+      # - name: Extract k8s deployment
+      #   id: k8s-deployment
+      #   env:
+      #     DEPLOYMENT: ${{ steps.github-repository.outputs.repository }}
+      #   run: echo "::set-output name=deployment::${DEPLOYMENT/remosis-/}"
+
+      # - name: Update k8s deployment image
+      #   env:
+      #     # DEPLOYMENT: ${{ steps.github-repository.outputs.repository }}
+      #     # CONTAINER_NAME: ${{ steps.github-repository.outputs.repository }}
+      #     DEPLOYMENT: ${{ steps.k8s-deployment.outputs.deployment }}
+      #     CONTAINER_NAME: ${{ steps.k8s-deployment.outputs.deployment }}
+      #     CONTAINER_IMAGE: ${{ steps.ecr-image-uri.outputs.uri }}
+      #   run: |
+      #     kubectl set image deployment/${DEPLOYMENT} ${CONTAINER_NAME}=${CONTAINER_IMAGE} \
+      #       -n remosis \
+      #       --kubeconfig=/tmp/kubeconfig \
+      #       --record
+
+      # - name: Verify rollout status
+      #   run: |
+      #     kubectl rollout status deployment/api \
+      #       -n remosis \
+      #       --kubeconfig=/tmp/kubeconfig
+
+      - run: echo "Jobs done with ${{ job.status }}."

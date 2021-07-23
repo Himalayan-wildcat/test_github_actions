@@ -5,34 +5,8 @@ defaults:
     shell: bash
 
 jobs:
-  test:
-    if: "!contains('refs/heads/main refs/heads/staging', github.ref)"
+  pre-build-deploy:
     runs-on: ubuntu-20.04
-    steps:
-      - name: print hello
-        run: echo hello
-
-    # steps:
-    #   - name: Set up golang env
-    #     uses: actions/setup-go@v2
-    #     with:
-    #       go-version: "^1.16"
-
-    #   - name: Checkout
-    #     uses: actions/checkout@v2
-
-    #   # - name: Lint if any
-    #   #   run: echo Lint
-
-    #   - name: Test
-    #     run: go test -v ./...
-
-  pre_build_deploy:
-    # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
-    runs-on: ubuntu-20.04
-    outputs:
-      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
-      ecr_image_uri: ${{ steps.ecr-image-uri.outputs.uri }}
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -68,21 +42,27 @@ jobs:
       - name: Issue ECR image URI
         id: ecr-image-uri
         run: echo "::set-output name=uri::${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repository.outputs.repository  }}:1"
-
-      - name: Print env
-        run: |
-          echo ${{ steps.ecr-repository.outputs.repository }}
-          echo ${{ steps.ecr-image-uri.outputs.uri }}
-
+    outputs:
+      ecr_repository: ${{ steps.ecr-repository.outputs.repository }}
+      ecr_iamge_uri: ${{ steps.ecr-image-uri.outputs.uri }}
 
   build-deploy:
-    # if: contains('refs/heads/staging refs/heads/main', github.ref) && ${{ success() }}
+    needs: pre-build-deploy
     runs-on: ubuntu-20.04
-    needs: pre_build_deploy
+    env:
+      ECR_REPOSITORY: ${{ needs.pre-build-deploy.outputs.ecr_repository }}
+      ECR_IMAGE_URI: ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
     steps:
-      - run: echo ${{ needs.pre_build_deploy.outputs.ecr_repository }}
-      # - name: Checkout
-      #   uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Push image to ECR
+        run: |
+          docker build -t ${ECR_REPOSITORY} .
+          docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
+          docker push ${ECR_IMAGE_URI}
+
+
 
       # - name: print env from the previous job
       #   run: echo ${{ needs.pre-build-deploy.outputs.ecr_repository }} +  ${{ needs.pre-build-deploy.outputs.ecr_image_uri }}
