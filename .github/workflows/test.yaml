@@ -58,9 +58,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: print foo
+        run: echo ${foo}
+
       - name: Push image to ECR
         run: |
-          echo ${foo}
           docker build -t ${ECR_REPOSITORY} .
           # docker tag ${ECR_REPOSITORY}:latest ${ECR_IMAGE_URI}
           # docker push ${ECR_IMAGE_URI}
